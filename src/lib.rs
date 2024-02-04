@@ -1,5 +1,5 @@
 use crate::hash::stable_hash_string;
-use crate::lookup::{local_intern, local_lookup, LOCAL_LOOKUP_TABLE};
+use crate::lookup::{local_intern, local_lookup};
 use crate::serde_util::BorrowedStrVisitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Debug, Display};
@@ -10,6 +10,7 @@ use std::sync::Arc;
 pub mod hash;
 pub mod lookup;
 mod serde_util;
+
 #[derive(Clone, PartialEq, Eq, Hash, Copy)]
 pub struct InternedString {
     hash: u64,
@@ -33,13 +34,7 @@ impl InternedString {
         }
         InternedString { hash }
     }
-    pub fn from_str_static(s: &'static str) -> InternedString {
-        let hash = stable_hash_string(s);
 
-        LOCAL_LOOKUP_TABLE.with(|table| table.borrow_mut().intern(hash, s));
-
-        InternedString { hash }
-    }
     /// Build a InternedString from a hash. Use with caution as the hash may not be valid.
     pub unsafe fn from_hash(hash: u64) -> InternedString {
         InternedString { hash }

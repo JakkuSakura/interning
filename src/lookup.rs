@@ -12,7 +12,7 @@ impl LocalLookupTable {
         Default::default()
     }
     /// Returns if newly interned
-    pub fn intern(&mut self, hash: u64, s: &'static str) -> bool {
+    pub fn intern(&mut self, hash: u64, s: &'static str) -> &'static str {
         match self.table.entry(hash) {
             hash_map::Entry::Occupied(o) => {
                 if *o.get() != s {
@@ -22,11 +22,12 @@ impl LocalLookupTable {
                         o.get()
                     )
                 }
-                false
+                o.get()
             }
             hash_map::Entry::Vacant(v) => {
-                v.insert(s);
-                GLOBAL_LOOKUP_TABLE.intern(hash, s)
+                let global = GLOBAL_LOOKUP_TABLE.intern(hash, s);
+                v.insert(global);
+                global
             }
         }
     }
@@ -46,16 +47,18 @@ pub fn local_lookup(hash: u64) -> Option<&'static str> {
     LOCAL_LOOKUP_TABLE.with(|table| table.borrow_mut().lookup(hash))
 }
 
-pub fn local_intern(hash: u64, s: String) -> bool {
+pub fn local_intern(hash: u64, s: String) -> &'static str {
     let leaked = Box::leak(s.into_boxed_str());
-    let inserted = LOCAL_LOOKUP_TABLE.with(|table| table.borrow_mut().intern(hash, leaked));
-    if !inserted {
+    let interned: &'static str =
+        LOCAL_LOOKUP_TABLE.with(|table| table.borrow_mut().intern(hash, leaked));
+    // If the interned string is different from the leaked string, then the string was already interned
+    if !std::ptr::addr_eq(interned, leaked) {
         unsafe {
             let boxed = Box::from_raw(leaked as *const str as *mut str);
             drop(boxed)
         }
     }
-    inserted
+    interned
 }
 pub fn local_cleanup() {
     LOCAL_LOOKUP_TABLE.with(|table| table.borrow_mut().table.clear());
@@ -72,7 +75,7 @@ impl GlobalLookupTable {
         Default::default()
     }
     /// Returns if newly interned
-    pub fn intern(&self, hash: u64, s: &'static str) -> bool {
+    pub fn intern(&self, hash: u64, s: &'static str) -> &'static str {
         match self.table.entry(hash) {
             dashmap::mapref::entry::Entry::Occupied(o) => {
                 if *o.get() != s {
@@ -82,11 +85,11 @@ impl GlobalLookupTable {
                         o.get()
                     )
                 }
-                false
+                o.get()
             }
             dashmap::mapref::entry::Entry::Vacant(v) => {
                 v.insert(s);
-                true
+                s
             }
         }
     }

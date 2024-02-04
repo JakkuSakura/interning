@@ -40,6 +40,10 @@ impl InternedString {
 
         InternedString { hash }
     }
+    /// Build a InternedString from a hash. Use with caution as the hash may not be valid.
+    pub unsafe fn from_hash(hash: u64) -> InternedString {
+        InternedString { hash }
+    }
     pub fn as_str(&self) -> &str {
         local_lookup(self.hash).unwrap()
     }

@@ -1,4 +1,4 @@
-use crate::hash::stable_hash_string;
+use crate::hash::{get_hash_inlined_str, is_hash_inlined, stable_hash_string};
 use crate::lookup::{local_intern, local_lookup};
 use crate::serde_util::BorrowedStrVisitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -20,17 +20,19 @@ impl InternedString {
     pub fn new(s: impl Into<String>) -> InternedString {
         let string = s.into();
         let hash = stable_hash_string(&string);
-        local_intern(hash, string);
-
+        if !is_hash_inlined(hash) {
+            local_intern(hash, string);
+        }
         InternedString { hash }
     }
     pub fn from_str(s: &str) -> InternedString {
         let hash = stable_hash_string(s);
-
-        let looked_up = local_lookup(hash);
-        if looked_up.is_none() {
-            let string = s.to_string();
-            local_intern(hash, string);
+        if !is_hash_inlined(hash) {
+            let looked_up = local_lookup(hash);
+            if looked_up.is_none() {
+                let string = s.to_string();
+                local_intern(hash, string);
+            }
         }
         InternedString { hash }
     }
@@ -40,7 +42,11 @@ impl InternedString {
         InternedString { hash }
     }
     pub fn as_str(&self) -> &str {
-        local_lookup(self.hash).unwrap()
+        if is_hash_inlined(self.hash) {
+            get_hash_inlined_str(&self.hash)
+        } else {
+            local_lookup(self.hash).unwrap()
+        }
     }
     pub fn hash(&self) -> u64 {
         self.hash

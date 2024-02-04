@@ -5,7 +5,7 @@ Interning is the process of storing only one copy of each distinct string value,
 Add dependencies to your `Cargo.toml`:
 ```toml
 [dependencies]
-interning = "0.1"
+interning = "0.2"
 ```
 
 ```rust
@@ -17,3 +17,8 @@ fn main() {
 }
 ```
 
+## Change Log
+- 0.1.0
+  - Initial release
+- 0.2.0
+  - Inline small strings

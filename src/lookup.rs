@@ -1,10 +1,11 @@
+use crate::InternedStringHash;
 use dashmap::DashMap;
 use lazy_static::lazy_static;
 use std::collections::{hash_map, HashMap};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct LocalLookupTable {
-    table: HashMap<u64, &'static str>,
+    table: HashMap<InternedStringHash, &'static str>,
 }
 
 impl LocalLookupTable {
@@ -12,7 +13,7 @@ impl LocalLookupTable {
         Default::default()
     }
     /// Returns if newly interned
-    pub fn intern(&mut self, hash: u64, s: &'static str) -> &'static str {
+    pub fn intern(&mut self, hash: InternedStringHash, s: &'static str) -> &'static str {
         match self.table.entry(hash) {
             hash_map::Entry::Occupied(o) => {
                 if *o.get() != s {
@@ -31,7 +32,7 @@ impl LocalLookupTable {
             }
         }
     }
-    pub fn lookup(&mut self, hash: u64) -> Option<&'static str> {
+    pub fn lookup(&mut self, hash: InternedStringHash) -> Option<&'static str> {
         match self.table.get(&hash) {
             Some(s) => Some(*s),
             None => {
@@ -43,11 +44,11 @@ impl LocalLookupTable {
     }
 }
 
-pub fn local_lookup(hash: u64) -> Option<&'static str> {
+pub fn local_lookup(hash: InternedStringHash) -> Option<&'static str> {
     LOCAL_LOOKUP_TABLE.with(|table| table.borrow_mut().lookup(hash))
 }
 
-pub fn local_intern(hash: u64, s: String) -> &'static str {
+pub fn local_intern(hash: InternedStringHash, s: String) -> &'static str {
     let leaked = Box::leak(s.into_boxed_str());
     let interned: &'static str =
         LOCAL_LOOKUP_TABLE.with(|table| table.borrow_mut().intern(hash, leaked));
@@ -68,14 +69,14 @@ thread_local! {
 }
 #[derive(Debug, Clone, Default)]
 struct GlobalLookupTable {
-    table: DashMap<u64, &'static str>,
+    table: DashMap<InternedStringHash, &'static str>,
 }
 impl GlobalLookupTable {
     pub fn new() -> Self {
         Default::default()
     }
     /// Returns if newly interned
-    pub fn intern(&self, hash: u64, s: &'static str) -> &'static str {
+    pub fn intern(&self, hash: InternedStringHash, s: &'static str) -> &'static str {
         match self.table.entry(hash) {
             dashmap::mapref::entry::Entry::Occupied(o) => {
                 if *o.get() != s {
@@ -93,7 +94,7 @@ impl GlobalLookupTable {
             }
         }
     }
-    pub fn lookup(&self, hash: u64) -> Option<&'static str> {
+    pub fn lookup(&self, hash: InternedStringHash) -> Option<&'static str> {
         self.table.get(&hash).map(|s| *s.value())
     }
 }

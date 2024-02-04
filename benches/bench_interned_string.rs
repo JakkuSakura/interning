@@ -1,16 +1,15 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use interning::hash::stable_hash_string;
 use interning::lookup::{global_cleanup, local_cleanup};
-use interning::InternedString;
+use interning::{InternedString, InternedStringHash};
 use std::collections::HashMap;
 
 fn words() -> Vec<String> {
     (0..100).map(|x| format!("{}", x)).collect()
 }
-fn bench_insert_hashmap(map: &mut HashMap<u64, String>, words: Vec<String>) {
+fn bench_insert_hashmap(map: &mut HashMap<InternedStringHash, String>, words: Vec<String>) {
     map.clear();
     for word in words {
-        let hash = stable_hash_string(&word);
+        let hash = InternedStringHash::from_str(&word);
         map.insert(hash, word);
     }
 }
@@ -21,7 +20,7 @@ fn bench_insert_interned(words: Vec<String>) {
         let _ = InternedString::new(word);
     }
 }
-fn bench_hashmap_lookup(map: &mut HashMap<u64, String>, hash: &[u64]) {
+fn bench_hashmap_lookup(map: &mut HashMap<InternedStringHash, String>, hash: &[InternedStringHash]) {
     for &h in hash {
         let foo = map.get(&h).unwrap();
         black_box(foo);
@@ -59,7 +58,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         bench_insert_hashmap(&mut map, words.clone());
         let hash = words
             .iter()
-            .map(|x| stable_hash_string(x))
+            .map(|x| InternedStringHash::from_str(x))
             .collect::<Vec<_>>();
         b.iter(|| {
             bench_hashmap_lookup(&mut map, &hash);
@@ -68,10 +67,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("lookup_interned", |b| {
         let words = words();
         bench_insert_interned(words.clone());
-        let strs = words
-            .iter()
-            .map(|x| InternedString::from_str(x))
-            .collect::<Vec<_>>();
+        let strs = words.iter().map(|x| InternedString::from_str(x)).collect::<Vec<_>>();
         b.iter(|| {
             bench_interned_lookup(&strs);
         })

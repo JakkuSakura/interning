@@ -22,3 +22,6 @@ fn main() {
   - Initial release
 - 0.2.0
   - Inline small strings
+- 0.2.1
+  - Add InternedStringHash for endianness-independent hashing and user-friendly API
+

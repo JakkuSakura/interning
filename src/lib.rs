@@ -1,4 +1,4 @@
-use crate::hash::{get_hash_inlined_str, is_hash_inlined, stable_hash_string};
+pub use crate::hash::InternedStringHash;
 use crate::lookup::{local_intern, local_lookup};
 use crate::serde_util::BorrowedStrVisitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -6,28 +6,27 @@ use std::fmt::{Debug, Display};
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
-
 pub mod hash;
 pub mod lookup;
 mod serde_util;
 
 #[derive(Clone, PartialEq, Eq, Hash, Copy)]
 pub struct InternedString {
-    hash: u64,
+    hash: InternedStringHash,
 }
 
 impl InternedString {
     pub fn new(s: impl Into<String>) -> InternedString {
         let string = s.into();
-        let hash = stable_hash_string(&string);
-        if !is_hash_inlined(hash) {
+        let hash = InternedStringHash::from_str(&string);
+        if !hash.is_inlined() {
             local_intern(hash, string);
         }
         InternedString { hash }
     }
     pub fn from_str(s: &str) -> InternedString {
-        let hash = stable_hash_string(s);
-        if !is_hash_inlined(hash) {
+        let hash = InternedStringHash::from_str(s);
+        if !hash.is_inlined() {
             let looked_up = local_lookup(hash);
             if looked_up.is_none() {
                 let string = s.to_string();
@@ -38,17 +37,17 @@ impl InternedString {
     }
 
     /// Build a InternedString from a hash. Use with caution as the hash may not be valid.
-    pub unsafe fn from_hash(hash: u64) -> InternedString {
+    pub unsafe fn from_hash(hash: InternedStringHash) -> InternedString {
         InternedString { hash }
     }
     pub fn as_str(&self) -> &str {
-        if is_hash_inlined(self.hash) {
-            get_hash_inlined_str(&self.hash)
+        if self.hash.is_inlined() {
+            self.hash.get_inlined_str()
         } else {
             local_lookup(self.hash).unwrap()
         }
     }
-    pub fn hash(&self) -> u64 {
+    pub fn hash(&self) -> InternedStringHash {
         self.hash
     }
 }

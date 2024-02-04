@@ -42,6 +42,9 @@ impl InternedString {
     pub fn as_str(&self) -> &str {
         local_lookup(self.hash).unwrap()
     }
+    pub fn hash(&self) -> u64 {
+        self.hash
+    }
 }
 impl<'a> From<&'a str> for InternedString {
     fn from(s: &'a str) -> Self {

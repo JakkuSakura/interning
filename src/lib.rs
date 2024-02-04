@@ -5,6 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Debug, Display};
 use std::ops::Deref;
 use std::str::FromStr;
+use std::sync::Arc;
 
 pub mod hash;
 pub mod lookup;
@@ -51,7 +52,38 @@ impl<'a> From<&'a str> for InternedString {
         InternedString::from_str(s)
     }
 }
-
+impl From<String> for InternedString {
+    fn from(s: String) -> Self {
+        InternedString::new(s)
+    }
+}
+impl From<Box<str>> for InternedString {
+    fn from(s: Box<str>) -> Self {
+        let s = String::from(s);
+        InternedString::new(s)
+    }
+}
+impl From<Arc<str>> for InternedString {
+    fn from(s: Arc<str>) -> Self {
+        let s = String::from(s.as_ref());
+        InternedString::new(s)
+    }
+}
+impl Into<String> for InternedString {
+    fn into(self) -> String {
+        self.as_str().to_string()
+    }
+}
+impl Into<Box<str>> for InternedString {
+    fn into(self) -> Box<str> {
+        self.as_str().into()
+    }
+}
+impl Into<Arc<str>> for InternedString {
+    fn into(self) -> Arc<str> {
+        self.as_str().into()
+    }
+}
 impl FromStr for InternedString {
     type Err = std::convert::Infallible;
     fn from_str(s: &str) -> Result<Self, Self::Err> {

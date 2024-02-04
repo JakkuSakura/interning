@@ -3,6 +3,11 @@ name = "interning"
 version = "0.1.0"
 edition = "2021"
 
+authors = ["JakkuSakura <qjk2001@gmail.com>"]
+license = "MIT/Apache-2.0"
+description = "A Simple Thread-Lcoal and Global Interning Library"
+repository = "https://github.com/JakkuSakura/interning"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

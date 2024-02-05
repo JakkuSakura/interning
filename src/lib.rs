@@ -9,6 +9,7 @@ use std::sync::Arc;
 pub mod hash;
 pub mod lookup;
 mod serde_util;
+mod utils;
 
 #[derive(Clone, PartialEq, Eq, Hash, Copy)]
 pub struct InternedString {

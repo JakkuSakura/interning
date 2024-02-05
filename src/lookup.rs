@@ -1,3 +1,4 @@
+use crate::utils::addr_eq;
 use crate::InternedStringHash;
 use dashmap::DashMap;
 use lazy_static::lazy_static;
@@ -53,7 +54,7 @@ pub fn local_intern(hash: InternedStringHash, s: String) -> &'static str {
     let interned: &'static str =
         LOCAL_LOOKUP_TABLE.with(|table| table.borrow_mut().intern(hash, leaked));
     // If the interned string is different from the leaked string, then the string was already interned
-    if !std::ptr::addr_eq(interned, leaked) {
+    if !addr_eq(interned, leaked) {
         unsafe {
             let boxed = Box::from_raw(leaked as *const str as *mut str);
             drop(boxed)

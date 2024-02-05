@@ -135,3 +135,16 @@ impl<'de> Deserialize<'de> for InternedString {
         Ok(InternedString::from_str(val))
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_small_strings() {
+        let s = "hello";
+        let interned = InternedString::from_str(s);
+        assert_eq!(interned.as_str(), s);
+        let interned = InternedString::from_str(s);
+        assert_eq!(interned.as_str(), s);
+    }
+}

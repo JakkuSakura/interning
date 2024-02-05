@@ -62,7 +62,21 @@ impl InternedStringHash {
         debug_assert!(self.is_inlined());
         let len = self.get_inlined_len();
         let ptr = self.0.as_ptr();
-        let ptr = unsafe { ptr.add(8) };
+        let ptr = unsafe { ptr.add(1) };
         unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, len)) }
+    }
+}
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_small_strings() {
+        let s = "hello";
+        let interned = InternedStringHash::from_str(s);
+        assert_eq!(interned.get_inlined_str(), s);
+        let interned = InternedStringHash::from_str(s);
+        assert_eq!(interned.get_inlined_str(), s);
     }
 }

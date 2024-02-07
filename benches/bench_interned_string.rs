@@ -10,7 +10,8 @@ fn words() -> Vec<String> {
 fn sum_str(s: &str) -> u64 {
     s.chars().map(|x| x as u64).sum()
 }
-fn bench_insert_hashmap_id_to_str<'a>(
+
+fn bench_insert_hashmap_hash_to_str<'a>(
     map: &mut HashMap<InternedStringHash, &'a str>,
     words: &'a Vec<String>,
 ) {
@@ -34,7 +35,7 @@ fn bench_new_array_string<const N: usize>(words: &Vec<String>) {
         black_box(s);
     }
 }
-fn bench_hashmap_lookup_str(
+fn bench_hashmap_lookup_str_from_hash(
     map: &mut HashMap<InternedStringHash, &str>,
     hash: &[InternedStringHash],
 ) -> u64 {
@@ -47,15 +48,22 @@ fn bench_array_string_lookup_str<const N: usize>(words: &[ArrayString<N>]) -> u6
     words.iter().map(|s| sum_str(s.as_str())).sum()
 }
 
+fn bench_hashmap_lookup_id(map: &HashMap<String, i64>, words: &[String]) -> i64 {
+    words.iter().map(|s| *map.get(s).unwrap()).sum()
+}
+fn bench_interned_lookup_id(strs: &[InternedString]) -> i64 {
+    strs.iter().map(|s| s.hash().hash() as i64).sum()
+}
+
 pub fn criterion_benchmark(c: &mut Criterion) {
     let words = words();
     c.benchmark_group("setup_to_str_mapping")
-        .bench_function("insert_hashmap", |b| {
+        .bench_function("insert_hashmap_hash_to_str", |b| {
             b.iter_custom(|iters| {
                 let mut map = HashMap::new();
                 let start = std::time::Instant::now();
                 for _ in 0..iters {
-                    bench_insert_hashmap_id_to_str(&mut map, &words);
+                    bench_insert_hashmap_hash_to_str(&mut map, &words);
                 }
                 start.elapsed()
             })
@@ -88,19 +96,19 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             });
         });
     c.benchmark_group("lookup_str")
-        .bench_function("hashmap_lookup_str", |b| {
+        .bench_function("hashmap_lookup_str_from_hash", |b| {
             let hash = words
                 .iter()
                 .map(|x| InternedStringHash::from_str(x))
                 .collect::<Vec<_>>();
             b.iter_custom(|iters| {
                 let mut map = HashMap::new();
-                bench_insert_hashmap_id_to_str(&mut map, &words);
+                bench_insert_hashmap_hash_to_str(&mut map, &words);
                 let start = std::time::Instant::now();
                 for _ in 0..iters {
-                    bench_hashmap_lookup_str(&mut map, &hash);
+                    bench_hashmap_lookup_str_from_hash(&mut map, &hash);
                 }
-                bench_hashmap_lookup_str(&mut map, &hash);
+                bench_hashmap_lookup_str_from_hash(&mut map, &hash);
                 start.elapsed()
             })
         })
@@ -134,6 +142,34 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 .collect::<Vec<_>>();
             b.iter(|| {
                 bench_array_string_lookup_str(&words);
+            })
+        });
+    c.benchmark_group("lookup_id")
+        .bench_function("hashmap_lookup_id_from_str", |b| {
+            let map = words
+                .iter()
+                .enumerate()
+                .map(|(i, x)| (x.clone(), i as i64))
+                .collect::<HashMap<_, _>>();
+            b.iter_custom(|iters| {
+                let start = std::time::Instant::now();
+                for _ in 0..iters {
+                    bench_hashmap_lookup_id(&map, &words);
+                }
+                start.elapsed()
+            })
+        })
+        .bench_function("lookup_interned_id", |b| {
+            let strs = words
+                .iter()
+                .map(|x| InternedString::from_str(x))
+                .collect::<Vec<_>>();
+            b.iter_custom(|iters| {
+                let start = std::time::Instant::now();
+                for _ in 0..iters {
+                    bench_interned_lookup_id(&strs);
+                }
+                start.elapsed()
             })
         });
 }

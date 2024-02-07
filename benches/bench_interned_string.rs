@@ -10,7 +10,12 @@ fn words() -> Vec<String> {
 fn sum_str(s: &str) -> u64 {
     s.chars().map(|x| x as u64).sum()
 }
-
+fn bench_new_string(words: &Vec<String>, out: &mut Vec<String>) {
+    for word in words {
+        let s = word.clone();
+        out.push(s);
+    }
+}
 fn bench_insert_hashmap_hash_to_str<'a>(
     map: &mut HashMap<InternedStringHash, &'a str>,
     words: &'a Vec<String>,
@@ -35,6 +40,9 @@ fn bench_new_array_string<const N: usize>(words: &Vec<String>) {
         black_box(s);
     }
 }
+fn bench_lookup_str_from_string(words: &[String]) -> u64 {
+    words.iter().map(|s| sum_str(s)).sum()
+}
 fn bench_hashmap_lookup_str_from_hash(
     map: &mut HashMap<InternedStringHash, &str>,
     hash: &[InternedStringHash],
@@ -58,6 +66,13 @@ fn bench_interned_lookup_id(strs: &[InternedString]) -> i64 {
 pub fn criterion_benchmark(c: &mut Criterion) {
     let words = words();
     c.benchmark_group("setup_to_str_mapping")
+        .bench_function("new_str", |b| {
+            b.iter_with_large_drop(|| {
+                let mut out = Vec::new();
+                bench_new_string(&words, &mut out);
+                out
+            })
+        })
         .bench_function("insert_hashmap_hash_to_str", |b| {
             b.iter_custom(|iters| {
                 let mut map = HashMap::new();
@@ -96,6 +111,11 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             });
         });
     c.benchmark_group("lookup_str")
+        .bench_function("lookup_str_from_string", |b| {
+            b.iter(|| {
+                bench_lookup_str_from_string(&words);
+            })
+        })
         .bench_function("hashmap_lookup_str_from_hash", |b| {
             let hash = words
                 .iter()
@@ -108,7 +128,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 for _ in 0..iters {
                     bench_hashmap_lookup_str_from_hash(&mut map, &hash);
                 }
-                bench_hashmap_lookup_str_from_hash(&mut map, &hash);
                 start.elapsed()
             })
         })

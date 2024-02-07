@@ -44,7 +44,7 @@ fn bench_lookup_str_from_string(words: &[String]) -> u64 {
     words.iter().map(|s| sum_str(s)).sum()
 }
 fn bench_hashmap_lookup_str_from_hash(
-    map: &mut HashMap<InternedStringHash, &str>,
+    map: &HashMap<InternedStringHash, &str>,
     hash: &[InternedStringHash],
 ) -> u64 {
     hash.iter().map(|h| sum_str(map.get(h).unwrap())).sum()
@@ -121,15 +121,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 .iter()
                 .map(|x| InternedStringHash::from_str(x))
                 .collect::<Vec<_>>();
-            b.iter_custom(|iters| {
-                let mut map = HashMap::new();
-                bench_insert_hashmap_hash_to_str(&mut map, &words);
-                let start = std::time::Instant::now();
-                for _ in 0..iters {
-                    bench_hashmap_lookup_str_from_hash(&mut map, &hash);
-                }
-                start.elapsed()
-            })
+            let mut map = HashMap::new();
+            bench_insert_hashmap_hash_to_str(&mut map, &words);
+            b.iter(|| bench_hashmap_lookup_str_from_hash(&mut map, &hash))
         })
         .bench_function("lookup_interned", |b| {
             bench_insert_interned(&words);
@@ -137,13 +131,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 .iter()
                 .map(|x| InternedString::from_str(x))
                 .collect::<Vec<_>>();
-            b.iter_custom(|iters| {
-                let start = std::time::Instant::now();
-                for _ in 0..iters {
-                    bench_interned_lookup_str(&strs);
-                }
-                start.elapsed()
-            })
+            b.iter(|| bench_interned_lookup_str(&strs))
         })
         .bench_function("lookup_array_string_15", |b| {
             let words = words
@@ -170,26 +158,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 .enumerate()
                 .map(|(i, x)| (x.clone(), i as i64))
                 .collect::<HashMap<_, _>>();
-            b.iter_custom(|iters| {
-                let start = std::time::Instant::now();
-                for _ in 0..iters {
-                    bench_hashmap_lookup_id(&map, &words);
-                }
-                start.elapsed()
-            })
+            b.iter(|| bench_hashmap_lookup_id(&map, &words))
         })
         .bench_function("lookup_interned_id", |b| {
             let strs = words
                 .iter()
                 .map(|x| InternedString::from_str(x))
                 .collect::<Vec<_>>();
-            b.iter_custom(|iters| {
-                let start = std::time::Instant::now();
-                for _ in 0..iters {
-                    bench_interned_lookup_id(&strs);
-                }
-                start.elapsed()
-            })
+            b.iter(|| bench_interned_lookup_id(&strs))
         });
 }
 
